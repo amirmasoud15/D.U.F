@@ -1,58 +1,26 @@
-name: noVNC + Tunshell
+name: Tunshell Session
 
 on:
   workflow_dispatch:
 
 jobs:
-  start-novnc:
+  connect:
     runs-on: ubuntu-latest
     steps:
-      - name: Update system and install dependencies
+      - name: Start persistent Tunshell
         run: |
-          sudo apt update
-          sudo apt install -y xfce4 xfce4-goodies tightvncserver novnc websockify curl
-
-      - name: Start persistent session with VNC + noVNC + Tunshell
-        run: |
-          VNC_PASS="33159986"  # رمز VNC (حداکثر 8 کاراکتر)
-
-          END=$((SECONDS+18000))  # 5 ساعت
-
+          echo "Starting persistent Tunshell session..."
+          
+          # مدت زمان کل workflow به ثانیه (مثلاً 5 ساعت = 18000s)
+          END=$((SECONDS+18000))
+          
+          # loop تا زمان پایان
           while [ $SECONDS -lt $END ]; do
-            echo "--------------------------------------------"
-            echo "Starting VNC + noVNC + Tunshell..."
-            echo "Time elapsed: $SECONDS seconds"
-            echo "--------------------------------------------"
-
-            {
-              # ساخت دایرکتوری و رمز VNC
-              mkdir -p ~/.vnc
-              echo "$VNC_PASS" | vncpasswd -f > ~/.vnc/passwd
-              chmod 600 ~/.vnc/passwd
-
-              # بستن instanceهای قبلی اگر بودند
-              vncserver -kill :1 || true
-              pkill -f websockify || true
-
-              # راه‌اندازی VNC
-              vncserver :1 -geometry 1280x720 -depth 24
-
-              # راه‌اندازی noVNC
-              websockify --web=/usr/share/novnc/ 6080 localhost:5901 &
-
-              # اجرای Tunshell
-              curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
-                T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com &
-
-              echo "noVNC should be available via Tunshell port forward."
-              echo "Use the Tunshell session output to get the public URL."
-              
-              sleep 600  # 10 دقیقه قبل از بررسی دوباره
-            } || {
-              echo "⚠️ Something failed. Retrying in 5 seconds..."
-              sleep 5
-            }
-
+            echo "Launching Tunshell..."
+            
+            # اجرای Tunshell (اگر قطع شد، دوباره loop ادامه می‌ده)
+            curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
+            
+            echo "Tunshell disconnected. Reconnecting in 5 seconds..."
+            sleep 5
           done
-
-          echo "Workflow 5 hours completed."
