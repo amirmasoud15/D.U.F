@@ -1,0 +1,17 @@
+name: Tunshell Session
+
+on:
+  workflow_dispatch:
+
+jobs:
+  connect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Tunshell
+        run: |
+          curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T OIhF641dFg7vtanMN3EJeD 4FY7TqVi5VWvvIIHngzQbH eu.relay.tunshell.com
+      
+      - name: Keep Alive for 5 hours
+        run: |
+          echo "Keeping workflow alive for 5 hours..."
+          sleep 18000
