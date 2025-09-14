@@ -7,6 +7,20 @@ jobs:
   connect:
     runs-on: ubuntu-latest
     steps:
-      - name: Start Tunshell
+      - name: Start persistent Tunshell
         run: |
-          curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
+          echo "Starting persistent Tunshell session..."
+          
+          # مدت زمان کل workflow به ثانیه (مثلاً 5 ساعت = 18000s)
+          END=$((SECONDS+18000))
+          
+          # loop تا زمان پایان
+          while [ $SECONDS -lt $END ]; do
+            echo "Launching Tunshell..."
+            
+            # اجرای Tunshell (اگر قطع شد، دوباره loop ادامه می‌ده)
+            curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
+            
+            echo "Tunshell disconnected. Reconnecting in 5 seconds..."
+            sleep 5
+          done
