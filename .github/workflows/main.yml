@@ -1,4 +1,4 @@
-name: Persistent noVNC + Tunshell
+name: noVNC + Tunshell
 
 on:
   workflow_dispatch:
@@ -12,13 +12,11 @@ jobs:
           sudo apt update
           sudo apt install -y xfce4 xfce4-goodies tightvncserver novnc websockify curl
 
-      - name: Start persistent session
+      - name: Start persistent session with VNC + noVNC + Tunshell
         run: |
-          # رمز VNC
-          VNC_PASS="your_vnc_password"
+          VNC_PASS="33159986"  # رمز VNC (حداکثر 8 کاراکتر)
 
-          # مدت زمان کل workflow به ثانیه (5 ساعت = 18000s)
-          END=$((SECONDS+18000))
+          END=$((SECONDS+18000))  # 5 ساعت
 
           while [ $SECONDS -lt $END ]; do
             echo "--------------------------------------------"
@@ -26,36 +24,31 @@ jobs:
             echo "Time elapsed: $SECONDS seconds"
             echo "--------------------------------------------"
 
-            # Try-Catch ساده با bash: اگر دستوری fail شد، ادامه می‌ده
             {
+              # ساخت دایرکتوری و رمز VNC
               mkdir -p ~/.vnc
               echo "$VNC_PASS" | vncpasswd -f > ~/.vnc/passwd
               chmod 600 ~/.vnc/passwd
 
-              # Kill previous instances اگر بودند
+              # بستن instanceهای قبلی اگر بودند
               vncserver -kill :1 || true
               pkill -f websockify || true
 
-              # Start VNC
+              # راه‌اندازی VNC
               vncserver :1 -geometry 1280x720 -depth 24
 
-              # Start noVNC
+              # راه‌اندازی noVNC
               websockify --web=/usr/share/novnc/ 6080 localhost:5901 &
 
-              # Start Tunshell
-              SESSION_URL=$(curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
-                T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com --print-url)
+              # اجرای Tunshell
+              curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
+                T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com &
 
-              echo "--------------------------------------------"
-              echo "🌐 noVNC + Tunshell is ready!"
-              echo "Access your session in browser at:"
-              echo "$SESSION_URL:6080/vnc.html?host=localhost&port=6080"
-              echo "--------------------------------------------"
-
-              # Keep alive for 10 minutes before retry check
-              sleep 600
+              echo "noVNC should be available via Tunshell port forward."
+              echo "Use the Tunshell session output to get the public URL."
+              
+              sleep 600  # 10 دقیقه قبل از بررسی دوباره
             } || {
-              # اگر دستور Fail شد، دوباره loop اجرا می‌شود
               echo "⚠️ Something failed. Retrying in 5 seconds..."
               sleep 5
             }
