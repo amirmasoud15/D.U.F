@@ -9,4 +9,4 @@ jobs:
     steps:
       - name: Start Tunshell
         run: |
-          curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T OIhF641dFg7vtanMN3EJeD 4FY7TqVi5VWvvIIHngzQbH eu.relay.tunshell.com
+          curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
