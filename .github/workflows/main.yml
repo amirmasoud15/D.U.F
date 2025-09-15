@@ -28,8 +28,6 @@ jobs:
            -e RESOLUTION=640x480 \ 
             dorowu/ubuntu-desktop-lxde-vnc
 
-
-
       - name: Start ngrok tunnel (noVNC)
         run: |
           nohup ngrok http 6080 > ngrok.log &
