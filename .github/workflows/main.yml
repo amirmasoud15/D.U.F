@@ -23,10 +23,11 @@ jobs:
 
       - name: Run LXDE Docker container
         run: |
-           docker run -d --name lxde \
-           -p 6080:80 \
-           -e RESOLUTION=800x600 \ 
+          docker run -d --name lxde \
+          -p 6080:80 \
+          -e RESOLUTION=320×240 \
            dorowu/ubuntu-desktop-lxde-vnc
+
 
       - name: Start ngrok tunnel (noVNC)
         run: |
