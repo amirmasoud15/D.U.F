@@ -7,6 +7,28 @@ jobs:
   connect:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install ngrok
+        run: |
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | \
+            sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install ngrok -y
+
+      - name: Auth ngrok
+        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+      - name: Start ngrok tunnel
+        run: |
+          nohup ngrok http 8080 > ngrok.log &
+          sleep 5
+          curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
+          echo "==== Ngrok Tunnels ===="
+          cat tunnels.json
+
       - name: Start persistent Tunshell
         run: |
           echo "Starting persistent Tunshell session..."
@@ -19,7 +41,8 @@ jobs:
             echo "Launching Tunshell..."
             
             # اجرای Tunshell (اگر قطع شد، دوباره loop ادامه می‌ده)
-            curl -sSf https://lets.tunshell.com/init.sh | sh -s -- T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
+            curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
+              T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
             
             echo "Tunshell disconnected. Reconnecting in 5 seconds..."
             sleep 5
