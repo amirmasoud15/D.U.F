@@ -1,4 +1,4 @@
-name: Tunshell Session + Lightweight Desktop
+name: Ubuntu LXDE + Ngrok + Tunshell
 
 on:
   workflow_dispatch:
@@ -10,43 +10,47 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y xvfb x11vnc fluxbox wget python3-pip
-          pip3 install websockify
-
-      - name: Start lightweight desktop
-        run: |
-          export DISPLAY=:1
-          Xvfb :1 -screen 0 800x600x16 &
-          fluxbox &
-          x11vnc -display :1 -nopw -forever -shared -rfbport 5900 &
-          websockify --web=/usr/share/novnc 8080 localhost:5900 &
-
       - name: Install ngrok
         run: |
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | \
+            sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install ngrok -y
 
       - name: Auth ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Start ngrok tunnel
+      - name: Run LXDE Docker container
         run: |
-          nohup ngrok http 8080 > ngrok.log &
+          docker run -d --name lxde \
+            -p 6080:80 \
+            dorowu/ubuntu-desktop-lxde-vnc
+
+      - name: Start ngrok tunnel (noVNC)
+        run: |
+          nohup ngrok http 6080 > ngrok.log &
           sleep 5
-          curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
-          echo "==== Ngrok Tunnels ===="
-          cat tunnels.json
+          URL=$(curl -s http://127.0.0.1:4040/api/tunnels | \
+            jq -r '.tunnels[0].public_url')
+          echo "==== Ngrok noVNC URL ===="
+          echo "$URL"
 
       - name: Start persistent Tunshell
         run: |
           echo "Starting persistent Tunshell session..."
-          END=$((SECONDS+18000))  # حدود 5 ساعت
+          
+          # مدت زمان کل workflow به ثانیه (اینجا 5 ساعت = 18000 ثانیه)
+          END=$((SECONDS+18000))
+          
+          # loop تا زمان پایان
           while [ $SECONDS -lt $END ]; do
+            echo "Launching Tunshell..."
+            
+            # اجرای Tunshell (اگر قطع شد، دوباره loop ادامه می‌ده)
             curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
               T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
+            
+            echo "Tunshell disconnected. Reconnecting in 5 seconds..."
             sleep 5
           done
