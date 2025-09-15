@@ -1,4 +1,4 @@
-name: Ubuntu LXDE + Ngrok + Tunshell
+name: Ubuntu LXDE + Cloudflare Tunnel + Tunshell
 
 on:
   workflow_dispatch:
@@ -10,47 +10,32 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install ngrok
-        run: |
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | \
-            sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | \
-            sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install ngrok -y
-
-      - name: Auth ngrok
-        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
       - name: Run LXDE Docker container
         run: |
           docker run -d --name lxde \
             -p 6080:80 \
             dorowu/ubuntu-desktop-lxde-vnc
 
-      - name: Start ngrok tunnel (noVNC)
+      - name: Install cloudflared
         run: |
-          nohup ngrok http 6080 > ngrok.log &
+          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+
+      - name: Start Cloudflare Tunnel
+        run: |
+          nohup cloudflared tunnel --url http://localhost:6080 > cloudflared.log 2>&1 &
           sleep 5
-          URL=$(curl -s http://127.0.0.1:4040/api/tunnels | \
-            jq -r '.tunnels[0].public_url')
-          echo "==== Ngrok noVNC URL ===="
-          echo "$URL"
+          echo "==== Cloudflare Tunnel URL ===="
+          grep -o 'https://[0-9a-z]*\.trycloudflare.com' cloudflared.log | head -n 1
 
       - name: Start persistent Tunshell
         run: |
           echo "Starting persistent Tunshell session..."
-          
-          # مدت زمان کل workflow به ثانیه (اینجا 5 ساعت = 18000 ثانیه)
-          END=$((SECONDS+18000))
-          
-          # loop تا زمان پایان
+          END=$((SECONDS+18000))   # حدود ۵ ساعت
           while [ $SECONDS -lt $END ]; do
             echo "Launching Tunshell..."
-            
-            # اجرای Tunshell (اگر قطع شد، دوباره loop ادامه می‌ده)
             curl -sSf https://lets.tunshell.com/init.sh | sh -s -- \
               T Cevvg8HNK3xJEMmMXyWCjY fbfJBjUla2cwSuqyeC2XzL eu.relay.tunshell.com
-            
             echo "Tunshell disconnected. Reconnecting in 5 seconds..."
             sleep 5
           done
