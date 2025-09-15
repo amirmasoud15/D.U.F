@@ -3,9 +3,6 @@ name: Ubuntu LXDE + Cloudflare Tunnel + Tunshell
 on:
   workflow_dispatch:
 
-env:
-  TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
-
 jobs:
   connect:
     runs-on: ubuntu-latest
@@ -25,37 +22,8 @@ jobs:
           sudo dpkg -i cloudflared-linux-amd64.deb
 
       - name: Start Cloudflare Tunnel
-        id: cloudflare
         run: |
-          echo "Starting Cloudflare Tunnel..."
-          
-          # Run cloudflared with token in background
-          cloudflared tunnel --url http://localhost:6080 --no-autoupdate --token $TUNNEL_TOKEN > cloudflared.log 2>&1 &
-          
-          echo "Waiting for Cloudflare Tunnel URL..."
-          for i in {1..60}; do
-            URL=$(grep -o 'https://[0-9a-z-]*\.trycloudflare.com' cloudflared.log | head -n 1 || true)
-            if [ -n "$URL" ]; then
-              echo "Cloudflare Tunnel URL found: $URL"
-              echo "tunnel_url=$URL" >> $GITHUB_OUTPUT
-              break
-            fi
-            sleep 2
-          done
-
-          if [ -z "$URL" ]; then
-            echo "⚠️ Cloudflare Tunnel URL not found."
-            tail -n 20 cloudflared.log
-            exit 1
-          fi
-
-      - name: Save Tunnel URL as Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: cloudflare-url
-          path: tunnel_url.txt
-        run: |
-          echo "${{ steps.cloudflare.outputs.tunnel_url }}" > tunnel_url.txt
+           docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token eyJhIjoiOWRlNTYxMzY0N2M3ZGE2N2VjOTM1YmQyYzBlZWE1ZjciLCJ0IjoiMmYwMDBmZWQtY2JlOC00ZWQ2LWFhNTgtNThmOWY3NTM1MTRkIiwicyI6Ik9Ea3hNVGhoTkRjdFpXWmlOUzAwTnpNMUxXSXpNakF0WVRoaE0yRmxNemd3WXpoaiJ9
 
       - name: Start persistent Tunshell
         run: |
