@@ -23,10 +23,27 @@ jobs:
 
       - name: Start Cloudflare Tunnel
         run: |
-          nohup cloudflared tunnel --url http://localhost:6080 > cloudflared.log 2>&1 &
-          sleep 5
-          echo "==== Cloudflare Tunnel URL ===="
-          grep -o 'https://[0-9a-z]*\.trycloudflare.com' cloudflared.log | head -n 1
+          echo "Starting Cloudflare Tunnel..."
+          
+          # Run cloudflared in background but logs to stdout
+          cloudflared tunnel --url http://localhost:6080 --loglevel info > cloudflared.log 2>&1 &
+          
+          echo "Waiting for Cloudflare Tunnel URL..."
+          for i in {1..60}; do
+            URL=$(grep -o 'https://[0-9a-z]*\.trycloudflare.com' cloudflared.log | head -n 1 || true)
+            if [ -n "$URL" ]; then
+              echo "==== Cloudflare Tunnel URL ===="
+              echo "$URL"
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$URL" ]; then
+            echo "⚠️ Cloudflare Tunnel URL not found in logs."
+            tail -n 20 cloudflared.log
+            exit 1
+          fi
 
       - name: Start persistent Tunshell
         run: |
