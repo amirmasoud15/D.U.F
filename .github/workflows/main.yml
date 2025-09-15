@@ -1,4 +1,4 @@
-name: Tunshell Session
+name: Ubuntu LXDE + Ngrok + Tunshell
 
 on:
   workflow_dispatch:
@@ -21,19 +21,26 @@ jobs:
       - name: Auth ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Start ngrok tunnel
+      - name: Run LXDE Docker container
         run: |
-          nohup ngrok http 8080 > ngrok.log &
+          docker run -d --name lxde \
+            -p 6080:80 \
+            dorowu/ubuntu-desktop-lxde-vnc
+
+      - name: Start ngrok tunnel (noVNC)
+        run: |
+          nohup ngrok http 6080 > ngrok.log &
           sleep 5
-          curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
-          echo "==== Ngrok Tunnels ===="
-          cat tunnels.json
+          URL=$(curl -s http://127.0.0.1:4040/api/tunnels | \
+            jq -r '.tunnels[0].public_url')
+          echo "==== Ngrok noVNC URL ===="
+          echo "$URL"
 
       - name: Start persistent Tunshell
         run: |
           echo "Starting persistent Tunshell session..."
           
-          # مدت زمان کل workflow به ثانیه (مثلاً 5 ساعت = 18000s)
+          # مدت زمان کل workflow به ثانیه (اینجا 5 ساعت = 18000 ثانیه)
           END=$((SECONDS+18000))
           
           # loop تا زمان پایان
